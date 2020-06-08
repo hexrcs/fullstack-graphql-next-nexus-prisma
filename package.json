@@ -8,11 +8,16 @@
     "type-check": "tsc"
   },
   "dependencies": {
+    "graphql-tag": "^2.10.3",
+    "isomorphic-unfetch": "^3.0.0",
     "next": "latest",
+    "next-urql": "^0.3.8",
     "nexus": "^0.23.0",
     "nexus-plugin-prisma": "^0.9.0",
     "react": "^16.12.0",
-    "react-dom": "^16.12.0"
+    "react-dom": "^16.12.0",
+    "react-is": "^16.13.1",
+    "urql": "^1.9.7"
   },
   "devDependencies": {
     "@types/node": "^12.12.21",
