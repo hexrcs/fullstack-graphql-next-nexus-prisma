@@ -1,0 +1,12 @@
+overwrite: true
+schema: "http://localhost:4000/graphql" # GraphQL endpoint
+documents: "graphql/**/*.graphql.ts" # parse graphql operations in matching files
+generates:
+  generated/graphql.tsx: # location for generated types, hooks and components
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-urql"
+    config:
+      withComponent: false # we'll use Urql client with hooks instead
+      withHooks: true

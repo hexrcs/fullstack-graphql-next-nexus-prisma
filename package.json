@@ -20,6 +20,10 @@
     "urql": "^1.9.7"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^1.15.1",
+    "@graphql-codegen/typescript": "^1.15.1",
+    "@graphql-codegen/typescript-operations": "^1.15.1",
+    "@graphql-codegen/typescript-urql": "^1.15.1",
     "@types/node": "^12.12.21",
     "@types/react": "^16.9.16",
     "@types/react-dom": "^16.9.4",
