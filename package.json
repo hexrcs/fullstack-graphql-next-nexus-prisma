@@ -1,6 +1,6 @@
 {
-  "name": "with-typescript",
-  "version": "1.0.0",
+  "name": "my-awesome-app",
+  "version": "0.0.1",
   "scripts": {
     "dev": "next",
     "build": "next build",
