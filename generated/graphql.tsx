@@ -1,6 +1,7 @@
 import gql from 'graphql-tag';
 import * as Urql from 'urql';
 export type Maybe<T> = T | null;
+export type Exact<T extends { [key: string]: any }> = { [K in keyof T]: T[K] };
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -9,12 +10,18 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+  /** A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar. */
+  DateTime: any;
+  /** The `JSON` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
+  Json: any;
 };
 
 export type BatchPayload = {
   __typename?: 'BatchPayload';
   count: Scalars['Int'];
 };
+
+
 
 export type Mutation = {
   __typename?: 'Mutation';
@@ -67,11 +74,10 @@ export type QueryUserArgs = {
 
 
 export type QueryUsersArgs = {
-  skip?: Maybe<Scalars['Int']>;
-  after?: Maybe<UserWhereUniqueInput>;
-  before?: Maybe<UserWhereUniqueInput>;
   first?: Maybe<Scalars['Int']>;
   last?: Maybe<Scalars['Int']>;
+  before?: Maybe<UserWhereUniqueInput>;
+  after?: Maybe<UserWhereUniqueInput>;
 };
 
 export type StringFilter = {
@@ -121,7 +127,7 @@ export type UserWhereUniqueInput = {
   id?: Maybe<Scalars['String']>;
 };
 
-export type AllUsersQueryVariables = {};
+export type AllUsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type AllUsersQuery = (
