@@ -4,6 +4,8 @@ In this post, you'll learn how to build from scratch an entirely type-safe, full
 
 All the changes are committed by the end of each step, so if you are trying to follow along, clone [this repo](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma) and check [the commits](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma/commits/master)! 😃
 
+> 🗓 Update 22/06/2020: _All dependencies upgraded to the latest major versions! (`nexus@0.24.2`, `next-urql@1.0.1`)_
+
 ## Our tech stack
 
 First, let's have a look at our tools of choice:
@@ -21,13 +23,9 @@ Let's get started! 🚀
 
 Before we start, make sure that you have installed these VS Code extensions for syntax highlighting and auto-formatting - [Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma) and [GraphQL](https://marketplace.visualstudio.com/items?itemName=Prisma.vscode-graphql).
 
-![Prisma Extension for VS Code](https://i.imgur.com/wlX71dw.png)
+![Prisma Extension for VS Code](https://i.imgur.com/wlX71dw.png)<figcaption>Prisma Extension for VS Code</figcaption>
 
-<figcaption>Prisma Extension for VS Code</figcaption>
-
-![GraphQL Extension for VS Code](https://i.imgur.com/NlcGhhq.png)
-
-<figcaption>GraphQL Extension for VS Code</figcaption>
+![GraphQL Extension for VS Code](https://i.imgur.com/NlcGhhq.png)<figcaption>GraphQL Extension for VS Code</figcaption>
 
 ## Step 1: Spin up a PostgreSQL database
 
@@ -59,6 +57,8 @@ cd my-awesome-app
 Git should be automatically initialized by `create-next-app`, and your project structure should look like this:
 
 ![Project structure bootstrapped by `create-next-app`](https://i.imgur.com/kzVMkAY.png)<figcaption>Project structure bootstrapped by <code>create-next-app</code></figcaption>
+
+> The `create-next-app` might not have the latest TypeScript package pre-installed. If you want to use the latest TypeScript features, run `npm install -D typescript@latest` after the project is bootstrapped.
 
 ## Step 3: Install Nexus with Prisma
 
@@ -108,18 +108,19 @@ To improve the development experience, also add the [Nexus TypeScript Language S
 {
   "compilerOptions": {
     // ...
-    "noEmit": false,
+    "noEmit": true,
     "rootDir": ".",
+    "typeRoots": ["node_modules/@types", "types"],
     "plugins": [{ "name": "nexus/typescript-language-service" }]
   },
   // ...
-  "include": ["**/*.ts", "**/*.tsx", "."]
+  "include": ["**/*.ts", "**/*.tsx", ".", "types.d.ts"]
 }
 ```
 
 ## Step 4: Wire up Nexus with Next.js
 
-To create a GraphQL endpoint, create a new file in your project at `/pages/api/graphql.ts`. Thanks to the powerful [API routes](https://nextjs.org/docs/api-routes/introduction) in Next.js, the GraphQL server will be accessible at `[http://our-app-domain/api/graphql](http://our-app/api/graphql)` when the Next.js server is started.
+To create a GraphQL endpoint, create a new file in your project at `/pages/api/graphql.ts`. Thanks to the powerful [API routes](https://nextjs.org/docs/api-routes/introduction) in Next.js, the GraphQL server will be accessible at [`http://our-app-domain/api/graphql`](http://our-app/api/graphql) when the Next.js server is started.
 
 In the `/pages/api/graphql.ts` file, write the following boilerplate code:
 
@@ -136,13 +137,13 @@ Since everything inside the `/pages/api/` directory is considered as an API rout
 
 Now, create a new directory in the project root called `/graphql/` and a file `/graphql/schema.ts` in it for the actual GraphQL logic.
 
-Inside `/graphql/schema.ts`, start by initializing the Prisma plugin:
+Inside `/graphql/schema.ts`, start by initializing the Prisma plugin, with the _CRUD_ feature enabled, which we'll be using later:
 
 ```tsx
 import { schema, use } from "nexus";
 import { prisma } from "nexus-plugin-prisma";
 
-use(prisma());
+use(prisma({ features: { crud: true } }));
 ```
 
 Your project should now look like below. Notice that the _about_ and _user_ pages are examples created by `create-next-app`, and not related to our project. You can remove them if you like, but I'll leave them here to make it feel more like a "real-world project". 🙂
@@ -310,10 +311,7 @@ type Mutation {
   createOneUser(data: UserCreateInput!): User!
   deleteOneUser(where: UserWhereUniqueInput!): User
   deleteManyUser(where: UserWhereInput): BatchPayload!
-  updateOneUser(
-    data: UserUpdateInput!
-    where: UserWhereUniqueInput!
-  ): User
+  updateOneUser(data: UserUpdateInput!, where: UserWhereUniqueInput!): User
   updateManyUser(
     data: UserUpdateManyMutationInput!
     where: UserWhereInput
@@ -373,8 +371,8 @@ Then, create a new file at `/pages/_app.tsx`. This is a [special Next.js compone
 
 ```tsx
 import React from "react";
-import { withUrqlClient } from "next-urql";
-import { AppProps } from "next/app";
+import { withUrqlClient, NextUrqlAppContext } from "next-urql";
+import NextApp, { AppProps } from "next/app";
 import fetch from "isomorphic-unfetch";
 
 // the URL to /api/graphql
@@ -384,7 +382,16 @@ const App = ({ Component, pageProps }: AppProps) => {
   return <Component {...pageProps} />;
 };
 
-export default withUrqlClient({ url: GRAPHQL_ENDPOINT, fetch })(
+App.getInitialProps = async (ctx: NextUrqlAppContext) => {
+  const appProps = await NextApp.getInitialProps(ctx);
+  return { ...appProps };
+};
+
+export default withUrqlClient((_ssrExchange, _ctx) => ({
+  url: GRAPHQL_ENDPOINT,
+  fetch,
+}))(
+  // @ts-ignore
   App
 );
 ```
@@ -443,9 +450,7 @@ const AllUsers: React.FC = () => {
 
   return (
     <div>
-      <p>
-        There are {data?.allUsers.length} user(s) in the database:
-      </p>
+      <p>There are {data?.allUsers.length} user(s) in the database:</p>
       <ul>
         {data?.allUsers.map((user) => (
           <li key={user.id}>{user.name}</li>
@@ -526,7 +531,7 @@ Then, create a `codegen.yml` file in the project root with the following content
 
 ```yaml
 overwrite: true
-schema: "http://localhost:4000/graphql" # GraphQL endpoint
+schema: "http://localhost:4000/graphql" # GraphQL endpoint via the nexus dev server
 documents: "graphql/**/*.graphql.ts" # parse graphql operations in matching files
 generates:
   generated/graphql.tsx: # location for generated types, hooks and components
@@ -566,9 +571,7 @@ const AllUsers: React.FC = () => {
 
   return (
     <div>
-      <p>
-        There are {data?.allUsers?.length} user(s) in the database:
-      </p>
+      <p>There are {data?.allUsers?.length} user(s) in the database:</p>
       <ul>
         {data?.allUsers?.map((user) => (
           <li key={user.id}>{user.name}</li>
@@ -598,7 +601,7 @@ Then, replace `dev` script in the `package.json` file with the following:
   // ...
   "scripts": {
     // ...
-    "dev": "concurrently \"npx nexus dev\" \"npx next\" \"npx graphql-codegen --watch\""
+    "dev": "concurrently -r \"npx nexus dev\" \"npx next\" \"npx graphql-codegen --watch\""
     // ...
   }
   // ...
