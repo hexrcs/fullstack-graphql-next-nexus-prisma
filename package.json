@@ -2,7 +2,7 @@
   "name": "my-awesome-app",
   "version": "0.0.1",
   "scripts": {
-    "dev": "concurrently \"npx nexus dev\" \"npx next\" \"npx graphql-codegen --watch\"",
+    "dev": "concurrently -r \"npx nexus dev\" \"npx next\" \"npx graphql-codegen --watch\"",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc"
@@ -11,24 +11,24 @@
     "graphql-tag": "^2.10.3",
     "isomorphic-unfetch": "^3.0.0",
     "next": "latest",
-    "next-urql": "^0.3.8",
-    "nexus": "^0.23.0",
-    "nexus-plugin-prisma": "^0.9.0",
+    "next-urql": "^1.0.1",
+    "nexus": "^0.24.2",
+    "nexus-plugin-prisma": "^0.10.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-is": "^16.13.1",
-    "urql": "^1.9.7"
+    "urql": "^1.9.8"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^1.15.1",
-    "@graphql-codegen/typescript": "^1.15.1",
-    "@graphql-codegen/typescript-operations": "^1.15.1",
-    "@graphql-codegen/typescript-urql": "^1.15.1",
-    "@types/node": "^12.12.21",
-    "@types/react": "^16.9.16",
+    "@graphql-codegen/cli": "^1.15.4",
+    "@graphql-codegen/typescript": "^1.15.4",
+    "@graphql-codegen/typescript-operations": "^1.15.4",
+    "@graphql-codegen/typescript-urql": "^1.15.4",
+    "@types/node": "^12.12.47",
+    "@types/react": "^16.9.38",
     "@types/react-dom": "^16.9.4",
     "concurrently": "^5.2.0",
-    "typescript": "3.7.3"
+    "typescript": "^3.9.5"
   },
   "license": "ISC"
 }

@@ -9,7 +9,7 @@
     "lib": ["dom", "es2017"],
     "module": "esnext",
     "moduleResolution": "node",
-    "noEmit": false,
+    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -17,9 +17,10 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "esnext",
+    "typeRoots": ["node_modules/@types", "types"],
     "rootDir": ".",
     "plugins": [{ "name": "nexus/typescript-language-service" }]
   },
   "exclude": ["node_modules"],
-  "include": ["**/*.ts", "**/*.tsx", "."]
+  "include": ["**/*.ts", "**/*.tsx", ".", "types.d.ts"]
 }
