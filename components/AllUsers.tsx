@@ -1,5 +1,5 @@
-import React from "react";
-import { useAllUsersQuery } from "../generated/graphql";
+import React from 'react';
+import { useAllUsersQuery } from '../generated/graphql';
 
 const AllUsers: React.FC = () => {
   const [result] = useAllUsersQuery();
@@ -10,12 +10,10 @@ const AllUsers: React.FC = () => {
 
   return (
     <div>
-      <p>
-        There are {data?.allUsers?.length} user(s) in the database:
-      </p>
+      <p>There are {data?.allUsers?.length} user(s) in the database:</p>
       <ul>
-        {data?.allUsers?.map((user) => (
-          <li key={user.id}>{user.name}</li>
+        {data?.allUsers?.map(user => (
+          <li key={user?.id}>{user?.name}</li>
         ))}
       </ul>
     </div>
