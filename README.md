@@ -1,10 +1,10 @@
 # Complete Introduction to Fullstack, Type-Safe GraphQL (feat. Next.js, Nexus, Prisma)
 
-In this post, you'll learn how to build from scratch an entirely type-safe, fullstack web app, using GraphQL with a database attached!
+In this post, you'll learn how to build––from scratch––an entirely type-safe, fullstack web app, using GraphQL with a database attached!
 
-All the changes are committed by the end of each step, so if you are trying to follow along, clone [this repo](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma) and check [the commits](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma/commits/master)! 😃
+To follow along with the source code, clone [this repo](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma).
 
-> 🗓 Update 22/06/2020: _All dependencies upgraded to the latest major versions! (`nexus@0.24.2`, `next-urql@1.0.1`)_
+> 🗓 Update 19/11/2020: _The tutorial has been updated to use Nexus Schema as the Nexus Framework has been [discontinued](https://github.com/prisma-labs/graphql-framework-experiment)_
 
 ## Our tech stack
 
@@ -14,8 +14,9 @@ First, let's have a look at our tools of choice:
 - [**React**](https://reactjs.org/) and [**Next.js**](https://nextjs.org/) - as the frontend framework and [_middle-end_](https://medium.com/the-ideal-system/next-js-is-not-what-you-may-think-it-is-8423172e7401)
 - [**Urql GraphQL client**](https://formidable.com/open-source/urql/) - the GraphQL client on the frontend
 - [**PostgreSQL**](https://www.postgresql.org/) - the database for the app
-- [**Nexus**](https://nexusjs.org/) - a [_code-first_](https://www.nexusjs.org/#/?id=why) backend GraphQL framework
-- [**Prisma Client**](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client) and [**Prisma Migrate**](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-migrate) - a toolkit to change the database schema, access, and query the database _(Note: Prisma Migrate is still experimental at the moment)_
+- [**Apollo Server**](https://www.apollographql.com/docs/apollo-server/) - the server framework we'll use to serve the GraphQL API
+- [**Nexus Schema**](https://nexusjs.org/) - a library for building _code-first_ GraphQL APIs
+- [**Prisma Client**](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client) and [**`prisma db push`**](https://www.prisma.io/docs/reference/api-reference/command-reference/#db-push) - a toolkit to change the database schema, access, and query the database _(Note: `prisma db push` is still in a preview state at the moment)_
 
 Let's get started! 🚀
 
@@ -72,7 +73,7 @@ Because the URL contains sensitive information, it's a good practice to **never*
 
 Now, create a starter schema file for Prisma at `/prisma/schema.prisma` like below:
 
-```
+```prisma
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -94,13 +95,17 @@ Your project should currently look like this:
 
 ![Project structure after creating the `prisma` directory](https://i.imgur.com/riZnypE.png)<figcaption>Project structure after creating the <code>prisma</code> directory</figcaption>
 
-Then, install the Nexus framework and the `nexus-plugin-prisma` package:
+Next, install the Prisma CLI as a dev dependency:
 
 ```bash
-npm install nexus nexus-plugin-prisma
+npm install -D @prisma/cli
 ```
 
-The plugin already bundles Prisma, so you don't need to install `@prisma/client` or `@prism/cli` separately.
+Then, install the Prisma Client, Nexus Schema, and the `nexus-plugin-prisma` package:
+
+```bash
+npm install @prisma/client @nexus/schema nexus-plugin-prisma
+```
 
 To improve the development experience, also add the [Nexus TypeScript Language Service plugin](https://www.nexusjs.org/#/guides/project-layout?id=typescript-language-service-plugin), and tweak a few compiler options in the `tsconfig.json` file like below:
 
@@ -118,67 +123,134 @@ To improve the development experience, also add the [Nexus TypeScript Language S
 }
 ```
 
-## Step 4: Wire up Nexus with Next.js
+## Step 4: Wire up Nexus Schema with Next.js
+
+Nexus Schema is a library that allows us to build code-first GraphQL APIs. It's our responsibility to bring along a server to serve that API. For our purposes, we'll use [Apollo Server](https://www.apollographql.com/docs/apollo-server/).
+
+There are several varieties of Apollo Server that are used for various purposes. For our project, we'll want `apollo-server-mirco` as it's well-suited to serverless deployments.
+
+```bash
+npm install apollo-server-micro
+```
 
 To create a GraphQL endpoint, create a new file in your project at `/pages/api/graphql.ts`. Thanks to the powerful [API routes](https://nextjs.org/docs/api-routes/introduction) in Next.js, the GraphQL server will be accessible at [`http://our-app-domain/api/graphql`](http://our-app/api/graphql) when the Next.js server is started.
 
 In the `/pages/api/graphql.ts` file, write the following boilerplate code:
 
 ```tsx
-import app, { server } from "nexus";
-import "../../graphql/schema"; // we'll create this file in a second!
+import { ApolloServer } from 'apollo-server-micro';
 
-app.assemble();
+// we'll create these in a second!
+import { schema } from '../../graphql/schema';
+import { createContext } from './../../graphql/context';
 
-export default server.handlers.graphql;
+const apolloServer = new ApolloServer({
+  context: createContext,
+  schema,
+  tracing: process.env.NODE_ENV === 'development'
+});
+
+export const config = {
+  api: {
+    bodyParser: false
+  }
+};
+
+export default apolloServer.createHandler({
+  path: '/api/graphql'
+});
 ```
 
 Since everything inside the `/pages/api/` directory is considered as an API route, it's a good idea to implement the actual schema and resolvers outside this directory.
 
-Now, create a new directory in the project root called `/graphql/` and a file `/graphql/schema.ts` in it for the actual GraphQL logic.
+Now, create a new directory in the project root called `/graphql/` and two files within: `/graphql/schema.ts` and `/graphql/context.ts`.
 
-Inside `/graphql/schema.ts`, start by initializing the Prisma plugin, with the _CRUD_ feature enabled, which we'll be using later:
+Inside `/graphql/schema.ts`, start by using the `makeSchema` function to construct a GraphQL schema with Nexus. We'll also want to use `nexus-plugin-prisma` with the _CRUD_ feature enabled:
 
-```tsx
-import { schema, use } from "nexus";
-import { prisma } from "nexus-plugin-prisma";
+```ts
+import { objectType, queryType, mutationType, makeSchema } from '@nexus/schema';
+import { nexusPrisma } from 'nexus-plugin-prisma';
+import path from 'path';
 
-use(prisma({ features: { crud: true } }));
+const Query = queryType({
+  definition(t) {
+    t.string('hello', { resolve: () => 'hello world' });
+  }
+});
+
+export const schema = makeSchema({
+  types: [Query],
+  plugins: [nexusPrisma({ experimentalCRUD: true })],
+  outputs: {
+    typegen: path.join(process.cwd(), 'generated', 'nexus-typegen.ts'),
+    schema: path.join(process.cwd(), 'generated', 'schema.graphql')
+  },
+  typegenAutoConfig: {
+    contextType: 'Context.Context',
+    sources: [
+      {
+        source: '@prisma/client',
+        alias: 'prisma'
+      },
+      {
+        source: path.join(process.cwd(), 'graphql', 'context.ts'),
+        alias: 'Context'
+      }
+    ]
+  }
+});
 ```
 
-Your project should now look like below. Notice that the _about_ and _user_ pages are examples created by `create-next-app`, and not related to our project. You can remove them if you like, but I'll leave them here to make it feel more like a "real-world project". 🙂
+Next, initialize the `PrismaClient` within `/graphql/context.ts` and export a function to create the context in Apollo Server.
 
-![Project structure after creating `/graphql/schema.ts` and `/pages/api/graphql.ts`](https://i.imgur.com/Cf5lm12.png)<figcaption>Project structure after creating <code>/graphql/schema.ts</code> and <code>/pages/api/graphql.ts</code></figcaption>
+```ts
+import { PrismaClient } from '@prisma/client';
 
-Now you can start the Nexus dev server from the project root:
+const prisma = new PrismaClient();
 
-```tsx
-npx nexus dev
+export interface Context {
+  prisma: PrismaClient;
+}
+
+export function createContext(): Context {
+  return { prisma };
+}
 ```
 
-![Running Nexus dev server](https://i.imgur.com/OyKTlM2.png)<figcaption>Running Nexus dev server</figcaption>
+With these files in place, run the application:
 
-If you go to [http://localhost:4000](http://localhost:4000), you'll see the GraphQL Playground up and running (with an empty schema)! 😃
+```bash
+npx next dev
+```
 
-![GraphQL Playground with an empty schema](https://i.imgur.com/3ZdZqMK.png)<figcaption>GraphQL Playground with an empty schema</figcaption>
+If you go to [http://localhost:4000](http://localhost:4000), you'll see the GraphQL Playground up and running (with our "hello world" schema)! 😃
+
+![GraphQL Playground with a hello world schema](https://dev-to-uploads.s3.amazonaws.com/i/76awdex9a446jcazwz25.png)<figcaption>GraphQL Playground with a hello world schema</figcaption>
 
 ## Step 5: Implement your first GraphQL API
 
-With the Nexus dev server running in the background and the GraphQL Playground ready at [http://localhost:4000](http://localhost:4000), it's time to start implementing the API!
+With the GraphQL server running in the background and the GraphQL Playground ready at [http://localhost:4000](http://localhost:4000), it's time to start implementing the API!
 
 ### Step 5.1: Define an Object type
 
-The `schema` object allows defining GraphQL schema entirely with TypeScript.
+Start by defining a `User` object type to reflect the database schema. Once defined, add it to the `types` array in `makeSchema`.
 
-First, start by defining a `User` object type to reflect the database schema:
+```ts
+import { objectType, queryType, makeSchema } from '@nexus/schema';
 
-```tsx
-schema.objectType({
-  name: "User",
+const User = objectType({
+  name: 'User',
   definition(t) {
     t.model.id();
     t.model.name();
-  },
+  }
+});
+
+// ...
+
+export const schema = makeSchema({
+  types: [User, Query]
+  // ...
 });
 ```
 
@@ -195,24 +267,22 @@ type User {
 }
 ```
 
-![A `User` object type is generated by Nexus](https://i.imgur.com/e7S6zFJ.png)<figcaption>A <code>User</code> object type is generated by Nexus</figcaption>
-
 ### Step 5.2: Define the Query type
 
-For the root `Query` type, Nexus has `schema.queryType`.
+For the root `Query` type, Nexus provides a `queryType` function.
 
 To query a list of existing users in the database, you can write a resolver for `allUsers` field as follows:
 
-```tsx
-schema.queryType({
+```ts
+const Query = queryType({
   definition(t) {
-    t.list.field("allUsers", {
-      type: "User",
+    t.list.field('allUsers', {
+      type: 'User',
       resolve(_parent, _args, ctx) {
-        return ctx.db.user.findMany();
-      },
+        return ctx.prisma.user.findMany({});
+      }
     });
-  },
+  }
 });
 ```
 
@@ -222,18 +292,18 @@ You can do whatever you want in the `resolve` function. The Prisma client for yo
 
 In addition to manually writing resolvers, the Nexus-Prisma plugin conveniently exposes basic "read" operations on the database on `t.crud`. The following code will let you find a `User` (or a list of _`User`s_) from the database directly.
 
-```tsx
-schema.queryType({
+```ts
+const Query = queryType({
   definition(t) {
-    t.list.field("allUsers", {
-      type: "User",
+    t.list.field('allUsers', {
+      type: 'User',
       resolve(_parent, _args, ctx) {
-        return ctx.db.user.findMany({});
-      },
+        return ctx.prisma.user.findMany({});
+      }
     });
     t.crud.user();
     t.crud.users();
-  },
+  }
 });
 ```
 
@@ -263,35 +333,25 @@ Notice that all the related `Input` types are also generated for us for free! �
 
 ### Step 5.3: Define the Mutation type
 
-Similar to the Query type, `Mutation` type can be defined with `schema.mutationType`.
+Similar to the `Query` type, a `Mutation` type can be defined with the `mutationType` function.
 
-😈 Let's have some fun and create a `bigRedButton` mutation to destroy all user data in the database like below:
+😈 Let's have some fun and create a `bigRedButton` mutation to destroy all user data in the database.
 
-```tsx
-schema.mutationType({
+We also have access to the `t.crud` helper here, which exposes the basic "create", "update" and "delete" operations on the database. We then must add `Mutation` to the `types` array in `makeSchema`.
+
+```ts
+import { objectType, queryType, mutationType, makeSchema } from '@nexus/schema';
+
+// ...
+
+const Mutation = mutationType({
   definition(t) {
-    t.field("bigRedButton", {
-      type: "String",
+    t.field('bigRedButton', {
+      type: 'String',
       async resolve(_parent, _args, ctx) {
-        const { count } = await ctx.db.user.deleteMany({});
+        const { count } = await ctx.prisma.user.deleteMany({});
         return `${count} user(s) destroyed. Thanos will be proud.`;
-      },
-    });
-  },
-});
-```
-
-You also have access to the `t.crud` helper here, which exposes the basic "create", "update" and "delete" operations on the database.
-
-```tsx
-schema.mutationType({
-  definition(t) {
-    t.field("bigRedButton", {
-      type: "String",
-      async resolve(_parent, _args, ctx) {
-        const { count } = await ctx.db.user.deleteMany({});
-        return `${count} user(s) destroyed. Thanos will be proud.`;
-      },
+      }
     });
 
     t.crud.createOneUser();
@@ -299,7 +359,14 @@ schema.mutationType({
     t.crud.deleteManyUser();
     t.crud.updateOneUser();
     t.crud.updateManyUser();
-  },
+  }
+});
+
+// ...
+
+export const schema = makeSchema({
+  types: [User, Query, Mutation]
+  // ...
 });
 ```
 
@@ -321,28 +388,18 @@ type Mutation {
 
 ![`Mutation` type is generated by Nexus](https://i.imgur.com/7mfLl68.png)<figcaption><code>Mutation</code> type is generated by Nexus</figcaption>
 
-Now, our simple but fully featured GraphQL API is ready! 🥳
+Now, our simple but fully-featured GraphQL API is ready! 🥳
 
-## Step 6: Initialize database
+## Step 6: Initialize the database
 
 Before you can do anything with your GraphQL API, you'll need to create tables in the database corresponding to the Prisma schema file.
 
-This can be done by manually connecting to the database and running SQL commands, but I'll show you how to do it with [Prisma Migrate](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-migrate) - the database migration tool that's part of Prisma 2.
+This can be done by manually connecting to the database and running SQL commands, but I'll show you how to do it with the `prisma db push` commnand - the database tool that's part of Prisma 2.
 
-First, save the initial changes of our `schema.prisma` file with the command below. At the moment, Migrate is still in an experimental state, so the extra flag `--experimental` is needed.
-
-```bash
-npx prisma migrate save --name init --experimental
-```
-
-This will create a `migration` folder inside `/prisma`.
-
-![Schema migrations are created](https://i.imgur.com/EUj5gVJ.png)<figcaption>Schema migrations are created</figcaption>
-
-Now, push the updates to the database with this command:
+First, save the initial changes of our `schema.prisma` file with the command below. At the moment, the [`prisma db push` command](https://www.prisma.io/docs/reference/api-reference/command-reference/#db-push) is still in a preview state, so the extra flag `--preview-feature` flag is needed.
 
 ```bash
-npx prisma migrate up --experimental
+npx prisma db push --preview-feature
 ```
 
 Awesome! With the database prepared, it's time to go back to [http://localhost:4000](http://localhost:4000), and have some fun with the your first GraphQL API with Nexus. Let me give you an example to play with!
@@ -370,10 +427,10 @@ First, install the dependencies:
 Then, create a new file at `/pages/_app.tsx`. This is a [special Next.js component](https://nextjs.org/docs/advanced-features/custom-app) that will be used to initialize all pages.
 
 ```tsx
-import React from "react";
-import { withUrqlClient, NextUrqlAppContext } from "next-urql";
-import NextApp, { AppProps } from "next/app";
-import fetch from "isomorphic-unfetch";
+import React from 'react';
+import { withUrqlClient, NextUrqlAppContext } from 'next-urql';
+import NextApp, { AppProps } from 'next/app';
+import fetch from 'isomorphic-unfetch';
 
 // the URL to /api/graphql
 const GRAPHQL_ENDPOINT = `http://localhost:3000/api/graphql`;
@@ -389,7 +446,7 @@ App.getInitialProps = async (ctx: NextUrqlAppContext) => {
 
 export default withUrqlClient((_ssrExchange, _ctx) => ({
   url: GRAPHQL_ENDPOINT,
-  fetch,
+  fetch
 }))(
   // @ts-ignore
   App
@@ -405,9 +462,9 @@ First, create a TSX file at `/components/AllUsers.tsx`. This file will have a co
 You can create the query first, for example, with the following code. By using `gql`, the GraphQL VS Code extension will be able to identify the template string as a GraphQL query and apply nice syntax highlighting to it.
 
 ```tsx
-import React from "react";
-import gql from "graphql-tag";
-import { useQuery } from "urql";
+import React from 'react';
+import gql from 'graphql-tag';
+import { useQuery } from 'urql';
 
 const AllUsersQuery = gql`
   query {
@@ -441,7 +498,7 @@ The component encapsulates the following logic:
 ```tsx
 const AllUsers: React.FC = () => {
   const [result] = useQuery<AllUsersData>({
-    query: AllUsersQuery,
+    query: AllUsersQuery
   });
   const { data, fetching, error } = result;
 
@@ -452,7 +509,7 @@ const AllUsers: React.FC = () => {
     <div>
       <p>There are {data?.allUsers.length} user(s) in the database:</p>
       <ul>
-        {data?.allUsers.map((user) => (
+        {data?.allUsers.map(user => (
           <li key={user.id}>{user.name}</li>
         ))}
       </ul>
@@ -466,9 +523,9 @@ export default AllUsers;
 Now, save the TSX file, and mount it onto the home page `/pages/index.tsx`:
 
 ```tsx
-import Link from "next/link";
-import Layout from "../components/Layout";
-import AllUsers from "../components/AllUsers";
+import Link from 'next/link';
+import Layout from '../components/Layout';
+import AllUsers from '../components/AllUsers';
 
 const IndexPage = () => (
   <Layout title="Home | Next.js + TypeScript Example">
@@ -503,7 +560,7 @@ Instead of manually defining all the types we expect to receive via GraphQL, we 
 First, copy and refactor the GraphQL queries from the TSX files into the `graphql` directory. With the example from Step 8, create a new file at `/graphql/queries.graphql.ts` and copy the query from `/components/AllUsers.tsx`:
 
 ```tsx
-import gql from "graphql-tag";
+import gql from 'graphql-tag';
 
 export const AllUsersQuery = gql`
   query AllUsers {
@@ -531,14 +588,14 @@ Then, create a `codegen.yml` file in the project root with the following content
 
 ```yaml
 overwrite: true
-schema: "http://localhost:4000/graphql" # GraphQL endpoint via the nexus dev server
-documents: "graphql/**/*.graphql.ts" # parse graphql operations in matching files
+schema: 'http://localhost:4000/graphql' # GraphQL endpoint via the nexus dev server
+documents: 'graphql/**/*.graphql.ts' # parse graphql operations in matching files
 generates:
   generated/graphql.tsx: # location for generated types, hooks and components
     plugins:
-      - "typescript"
-      - "typescript-operations"
-      - "typescript-urql"
+      - 'typescript'
+      - 'typescript-operations'
+      - 'typescript-urql'
     config:
       withComponent: false # we'll use Urql client with hooks instead
       withHooks: true
@@ -559,8 +616,8 @@ You will see some nice, written-by-a-robot code in `/generated/graphql.tsx`. How
 Now, you can go back to `components/AllUsers.tsx`, and replace the manually written `AllUsersData` type, the GraphQL query, and the `useQuery` hook, with what's in the `/generated/graphql.tsx` file:
 
 ```tsx
-import React from "react";
-import { useAllUsersQuery } from "../generated/graphql";
+import React from 'react';
+import { useAllUsersQuery } from '../generated/graphql';
 
 const AllUsers: React.FC = () => {
   const [result] = useAllUsersQuery();
@@ -573,7 +630,7 @@ const AllUsers: React.FC = () => {
     <div>
       <p>There are {data?.allUsers?.length} user(s) in the database:</p>
       <ul>
-        {data?.allUsers?.map((user) => (
+        {data?.allUsers?.map(user => (
           <li key={user.id}>{user.name}</li>
         ))}
       </ul>
@@ -612,6 +669,6 @@ Now, we can use a single `npm run dev` command to launch Nexus, Next.js, and Gra
 
 ## Conclusion
 
-I hope you have enjoyed this tutorial and have learned something useful! You can always find the source code and [step-by-step commits](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma/commits/master) in [this GitHub repo](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma).
+I hope you have enjoyed this tutorial and have learned something useful! You can find the source code in [this GitHub repo](https://github.com/hexrcs/fullstack-graphql-next-nexus-prisma).
 
 Also, check out the [Awesome Prisma list](https://github.com/catalinmiron/awesome-prisma) for more tutorials and starter projects in the Prisma ecosystem!

@@ -56,7 +56,7 @@ export const schema = makeSchema({
         alias: 'prisma'
       },
       {
-        source: require.resolve('./context'),
+        source: path.join(process.cwd(), 'graphql', 'context.ts'),
         alias: 'Context'
       }
     ]
