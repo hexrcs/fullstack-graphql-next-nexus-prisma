@@ -10,18 +10,33 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
-  /** A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar. */
-  DateTime: any;
-  /** The `JSON` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf). */
-  Json: any;
 };
 
-export type BatchPayload = {
-  __typename?: 'BatchPayload';
-  count: Scalars['Int'];
+export type User = {
+  __typename?: 'User';
+  id: Scalars['String'];
+  name: Scalars['String'];
+};
+
+export type Query = {
+  __typename?: 'Query';
+  allUsers?: Maybe<Array<Maybe<User>>>;
+  user?: Maybe<User>;
+  users: Array<User>;
 };
 
 
+export type QueryUserArgs = {
+  where: UserWhereUniqueInput;
+};
+
+
+export type QueryUsersArgs = {
+  first?: Maybe<Scalars['Int']>;
+  last?: Maybe<Scalars['Int']>;
+  before?: Maybe<UserWhereUniqueInput>;
+  after?: Maybe<UserWhereUniqueInput>;
+};
 
 export type Mutation = {
   __typename?: 'Mutation';
@@ -60,29 +75,40 @@ export type MutationUpdateManyUserArgs = {
   where?: Maybe<UserWhereInput>;
 };
 
-export type Query = {
-  __typename?: 'Query';
-  allUsers?: Maybe<Array<User>>;
-  user?: Maybe<User>;
-  users: Array<User>;
+export type UserWhereUniqueInput = {
+  id?: Maybe<Scalars['String']>;
 };
 
-
-export type QueryUserArgs = {
-  where: UserWhereUniqueInput;
+export type UserCreateInput = {
+  id?: Maybe<Scalars['String']>;
+  name: Scalars['String'];
 };
 
+export type BatchPayload = {
+  __typename?: 'BatchPayload';
+  count: Scalars['Int'];
+};
 
-export type QueryUsersArgs = {
-  first?: Maybe<Scalars['Int']>;
-  last?: Maybe<Scalars['Int']>;
-  before?: Maybe<UserWhereUniqueInput>;
-  after?: Maybe<UserWhereUniqueInput>;
+export type UserWhereInput = {
+  AND?: Maybe<Array<UserWhereInput>>;
+  OR?: Maybe<Array<UserWhereInput>>;
+  NOT?: Maybe<Array<UserWhereInput>>;
+  id?: Maybe<StringFilter>;
+  name?: Maybe<StringFilter>;
+};
+
+export type UserUpdateInput = {
+  id?: Maybe<StringFieldUpdateOperationsInput>;
+  name?: Maybe<StringFieldUpdateOperationsInput>;
+};
+
+export type UserUpdateManyMutationInput = {
+  id?: Maybe<StringFieldUpdateOperationsInput>;
+  name?: Maybe<StringFieldUpdateOperationsInput>;
 };
 
 export type StringFilter = {
   equals?: Maybe<Scalars['String']>;
-  not?: Maybe<Scalars['String']>;
   in?: Maybe<Array<Scalars['String']>>;
   notIn?: Maybe<Array<Scalars['String']>>;
   lt?: Maybe<Scalars['String']>;
@@ -92,39 +118,31 @@ export type StringFilter = {
   contains?: Maybe<Scalars['String']>;
   startsWith?: Maybe<Scalars['String']>;
   endsWith?: Maybe<Scalars['String']>;
+  mode?: Maybe<QueryMode>;
+  not?: Maybe<NestedStringFilter>;
 };
 
-export type User = {
-  __typename?: 'User';
-  id: Scalars['String'];
-  name: Scalars['String'];
+export type StringFieldUpdateOperationsInput = {
+  set?: Maybe<Scalars['String']>;
 };
 
-export type UserCreateInput = {
-  id?: Maybe<Scalars['String']>;
-  name: Scalars['String'];
-};
+export enum QueryMode {
+  Default = 'default',
+  Insensitive = 'insensitive'
+}
 
-export type UserUpdateInput = {
-  id?: Maybe<Scalars['String']>;
-  name?: Maybe<Scalars['String']>;
-};
-
-export type UserUpdateManyMutationInput = {
-  id?: Maybe<Scalars['String']>;
-  name?: Maybe<Scalars['String']>;
-};
-
-export type UserWhereInput = {
-  id?: Maybe<StringFilter>;
-  name?: Maybe<StringFilter>;
-  AND?: Maybe<Array<UserWhereInput>>;
-  OR?: Maybe<Array<UserWhereInput>>;
-  NOT?: Maybe<Array<UserWhereInput>>;
-};
-
-export type UserWhereUniqueInput = {
-  id?: Maybe<Scalars['String']>;
+export type NestedStringFilter = {
+  equals?: Maybe<Scalars['String']>;
+  in?: Maybe<Array<Scalars['String']>>;
+  notIn?: Maybe<Array<Scalars['String']>>;
+  lt?: Maybe<Scalars['String']>;
+  lte?: Maybe<Scalars['String']>;
+  gt?: Maybe<Scalars['String']>;
+  gte?: Maybe<Scalars['String']>;
+  contains?: Maybe<Scalars['String']>;
+  startsWith?: Maybe<Scalars['String']>;
+  endsWith?: Maybe<Scalars['String']>;
+  not?: Maybe<NestedStringFilter>;
 };
 
 export type AllUsersQueryVariables = Exact<{ [key: string]: never; }>;
@@ -132,10 +150,10 @@ export type AllUsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type AllUsersQuery = (
   { __typename?: 'Query' }
-  & { allUsers?: Maybe<Array<(
+  & { allUsers?: Maybe<Array<Maybe<(
     { __typename?: 'User' }
     & Pick<User, 'id' | 'name'>
-  )>> }
+  )>>> }
 );
 
 

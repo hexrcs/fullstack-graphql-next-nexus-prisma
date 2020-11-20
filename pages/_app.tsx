@@ -1,7 +1,7 @@
-import React from "react";
-import { withUrqlClient, NextUrqlAppContext } from "next-urql";
-import NextApp, { AppProps } from "next/app";
-import fetch from "isomorphic-unfetch";
+import React from 'react';
+import { withUrqlClient, NextUrqlAppContext } from 'next-urql';
+import NextApp, { AppProps } from 'next/app';
+import fetch from 'isomorphic-unfetch';
 
 // the URL to /api/graphql
 const GRAPHQL_ENDPOINT = `http://localhost:3000/api/graphql`;
@@ -17,7 +17,7 @@ App.getInitialProps = async (ctx: NextUrqlAppContext) => {
 
 export default withUrqlClient((_ssrExchange, _ctx) => ({
   url: GRAPHQL_ENDPOINT,
-  fetch,
+  fetch
 }))(
   // @ts-ignore
   App

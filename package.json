@@ -2,18 +2,22 @@
   "name": "my-awesome-app",
   "version": "0.0.1",
   "scripts": {
-    "dev": "concurrently -r \"npx nexus dev\" \"npx next\" \"npx graphql-codegen --watch\"",
+    "dev": "concurrently -r \"npx next\" \"npx graphql-codegen --watch\"",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc"
   },
   "dependencies": {
+    "@nexus/schema": "^0.17.0",
+    "@prisma/client": "^2.10.0",
+    "apollo-server-lambda": "^2.19.0",
+    "apollo-server-micro": "^2.19.0",
+    "graphql": "^15.4.0",
     "graphql-tag": "^2.10.3",
     "isomorphic-unfetch": "^3.0.0",
     "next": "latest",
     "next-urql": "^1.0.1",
-    "nexus": "^0.24.2",
-    "nexus-plugin-prisma": "^0.10.0",
+    "nexus-plugin-prisma": "^0.23.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-is": "^16.13.1",
@@ -24,11 +28,17 @@
     "@graphql-codegen/typescript": "^1.15.4",
     "@graphql-codegen/typescript-operations": "^1.15.4",
     "@graphql-codegen/typescript-urql": "^1.15.4",
+    "@prisma/cli": "^2.10.0",
     "@types/node": "^12.12.47",
     "@types/react": "^16.9.38",
     "@types/react-dom": "^16.9.4",
     "concurrently": "^5.2.0",
     "typescript": "^3.9.5"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "prettier": {
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "trailingComma": "none"
+  }
 }
