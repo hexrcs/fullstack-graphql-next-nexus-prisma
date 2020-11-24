@@ -223,13 +223,13 @@ With these files in place, run the application:
 npx next dev
 ```
 
-If you go to [http://localhost:4000](http://localhost:4000), you'll see the GraphQL Playground up and running (with our "hello world" schema)! 😃
+If you go to [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql), you'll see the GraphQL Playground up and running (with our "hello world" schema)! 😃
 
 ![GraphQL Playground with a hello world schema](https://dev-to-uploads.s3.amazonaws.com/i/76awdex9a446jcazwz25.png)<figcaption>GraphQL Playground with a hello world schema</figcaption>
 
 ## Step 5: Implement your first GraphQL API
 
-With the GraphQL server running in the background and the GraphQL Playground ready at [http://localhost:4000](http://localhost:4000), it's time to start implementing the API!
+With the GraphQL server running in the background and the GraphQL Playground ready at [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql), it's time to start implementing the API!
 
 ### Step 5.1: Define an Object type
 
@@ -402,7 +402,7 @@ First, save the initial changes of our `schema.prisma` file with the command bel
 npx prisma db push --preview-feature
 ```
 
-Awesome! With the database prepared, it's time to go back to [http://localhost:4000](http://localhost:4000), and have some fun with the your first GraphQL API with Nexus. Let me give you an example to play with!
+Awesome! With the database prepared, it's time to go back to [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql), and have some fun with the your first GraphQL API with Nexus. Let me give you an example to play with!
 
 ```graphql
 mutation {
@@ -588,7 +588,7 @@ Then, create a `codegen.yml` file in the project root with the following content
 
 ```yaml
 overwrite: true
-schema: 'http://localhost:4000/graphql' # GraphQL endpoint via the nexus dev server
+schema: 'http://localhost:3000/api/graphql' # GraphQL endpoint via the nexus dev server
 documents: 'graphql/**/*.graphql.ts' # parse graphql operations in matching files
 generates:
   generated/graphql.tsx: # location for generated types, hooks and components
@@ -601,7 +601,7 @@ generates:
       withHooks: true
 ```
 
-The configs above will tell `graphql-code-generator` to pull the GraphQL schema from `http://localhost:4000/graphql`, then generate types, Urql `useQuery` hooks into a file located at `/generated/graphql.tsx`.
+The configs above will tell `graphql-code-generator` to pull the GraphQL schema from `http://localhost:3000/api/graphql`, then generate types, Urql `useQuery` hooks into a file located at `/generated/graphql.tsx`.
 
 Cool, let the code generation begin (in _watch_ mode)!
 
