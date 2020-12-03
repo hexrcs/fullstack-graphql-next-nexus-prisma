@@ -63,15 +63,33 @@ Git should be automatically initialized by `create-next-app`, and your project s
 
 ## Step 3: Install Nexus with Prisma
 
-With the Next.js project ready, create a `.env` file in a new directory `/prisma/` in your project root, and create an environment variable `DATABASE_URL` with the PostgreSQL URI from _Step 1_. Mine looks like this:
+With the Next.js project ready, open a terminal window at the root of the application and install both Nexus Schema and Prisma.
 
+For Prisma, we need `@prisma/client`, `@nexus/schema` and `nexus-plugin-prisma` as a regular dependencies and `@prisma/cli` as a dev dependency.
+
+Regular dependencies:
+
+```bash
+npm i @prisma/client @nexus/schema nexus-plugin-prisma
 ```
-DATABASE_URL="postgresql://alice:wonderland@localhost:5432/mydb"
+
+Dev dependencies:
+
+```bash
+npm i @prisma/cli
 ```
 
-Because the URL contains sensitive information, it's a good practice to **never** commit this `.env` file with Git, so make sure it's also added to the `.gitignore` file.
+Once the dependencies are installed, initialize Prisma in the project.
 
-Now, create a starter schema file for Prisma at `/prisma/schema.prisma` like below:
+```bash
+npx prisma init
+```
+
+This command will create a `prisma` directory. If you have a look inside, you'll see a `.env` file and a `schema.prisma` file. The `schema.prisma` file will hold the database model and the `.env` file will hold the database connection string.
+
+Because the database connection string contains sensitive information, it's a good practice to **never** commit this `.env` file with Git, so make sure it's also added to the `.gitignore` file.
+
+Adjust the `schema.prisma` file to include a `User` model:
 
 ```prisma
 datasource db {
@@ -94,18 +112,6 @@ The schema file tells Prisma to use PostgreSQL as the database type, and the dat
 Your project should currently look like this:
 
 ![Project structure after creating the `prisma` directory](https://i.imgur.com/riZnypE.png)<figcaption>Project structure after creating the <code>prisma</code> directory</figcaption>
-
-Next, install the Prisma CLI as a dev dependency:
-
-```bash
-npm install -D @prisma/cli
-```
-
-Then, install the Prisma Client, Nexus Schema, and the `nexus-plugin-prisma` package:
-
-```bash
-npm install @prisma/client @nexus/schema nexus-plugin-prisma
-```
 
 To improve the development experience, also add the [Nexus TypeScript Language Service plugin](https://www.nexusjs.org/#/guides/project-layout?id=typescript-language-service-plugin), and tweak a few compiler options in the `tsconfig.json` file like below:
 
@@ -168,6 +174,8 @@ Now, create a new directory in the project root called `/graphql/` and two files
 Inside `/graphql/schema.ts`, start by using the `makeSchema` function to construct a GraphQL schema with Nexus. We'll also want to use `nexus-plugin-prisma` with the _CRUD_ feature enabled:
 
 ```ts
+// graphql/schema.ts
+
 import { objectType, queryType, mutationType, makeSchema } from '@nexus/schema';
 import { nexusPrisma } from 'nexus-plugin-prisma';
 import path from 'path';
@@ -201,9 +209,13 @@ export const schema = makeSchema({
 });
 ```
 
+The call to `makeSchema` includes a property called `plugins`. This is an array of any plugins we want to use with Nexus Schema and, in our case, we want to use `nexus-plugin-prisma`. The configuration we have here tells the plugin to use the CRUD feature which is what allows us to have automatically-generated CRUD resolvers for our API. You can [read more](https://nexusjs.org/docs/plugins/prisma/overview) on the CRUD feature provided by Nexus Schema.
+
 Next, initialize the `PrismaClient` within `/graphql/context.ts` and export a function to create the context in Apollo Server.
 
 ```ts
+// graphql/context.ts
+
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -215,6 +227,26 @@ export interface Context {
 export function createContext(): Context {
   return { prisma };
 }
+```
+
+The file structure should now look something like this:
+
+```bash
+my-app/
+├─ components/
+├─ graphql/
+│  ├─ context.ts
+│  ├─ schema.ts
+├─ interfaces/
+├─ pages/
+├─ prisma/
+│  ├─ .env
+│  ├─ schema.prisma
+├─ utils/
+├─ next-env.d.ts
+├─ package-lock.json
+├─ package.json
+├─ tsconfig.json
 ```
 
 With these files in place, run the application:
@@ -236,6 +268,8 @@ With the GraphQL server running in the background and the GraphQL Playground rea
 Start by defining a `User` object type to reflect the database schema. Once defined, add it to the `types` array in `makeSchema`.
 
 ```ts
+// graphql/schema.ts
+
 import { objectType, queryType, makeSchema } from '@nexus/schema';
 
 const User = objectType({
@@ -421,7 +455,7 @@ We'll use _[Urql](https://formidable.com/open-source/urql/)_ as the GraphQL clie
 First, install the dependencies:
 
 ```bash
-	npm install graphql-tag next-urql react-is urql isomorphic-unfetch
+npm install graphql-tag next-urql react-is urql isomorphic-unfetch
 ```
 
 Then, create a new file at `/pages/_app.tsx`. This is a [special Next.js component](https://nextjs.org/docs/advanced-features/custom-app) that will be used to initialize all pages.
