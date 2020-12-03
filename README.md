@@ -232,7 +232,7 @@ export function createContext(): Context {
 The file structure should now look something like this:
 
 ```bash
-my-app/
+my-awesome-app/
 ├─ components/
 ├─ graphql/
 │  ├─ context.ts
